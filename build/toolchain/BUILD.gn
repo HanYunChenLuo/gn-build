@@ -1,0 +1,16 @@
+# Copyright 2014 The Chromium Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+import("//build/toolchain/toolchain.gni")
+
+li_toolchain("gcc"){
+  cc="/usr/bin/gcc"
+  cxx="/usr/bin/g++"
+  ar="/usr/bin/ar"
+}
+
+li_toolchain("clang"){
+  cc="/usr/bin/clang"
+  cxx="/usr/bin/clang++"
+  ar="/usr/bin/ar"
+}

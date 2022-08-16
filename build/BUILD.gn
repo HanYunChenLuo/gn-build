@@ -3,22 +3,21 @@
 # found in the LICENSE file.
 
 config("compiler_defaults") {
-  if (current_os == "linux" || current_os == "mac") {
+  if (current_os == "linux") {
     cflags = [
       "-fPIC",
       "-pthread",
     ]
-  }
-  if (current_os == "mac") {
-    lib_dirs = [
-      "/usr/local/lib",
-      "/opt/homebrew/lib",
-    ]
+    lib_dirs = [ "/usr/local/lib" ]
+    include_dirs = ["/usr/local/include/opencv4"]
   }
 }
 
 config("executable_ldconfig") {
-  ldflags = [
-
-  ]
+  if (!is_mac) {
+    ldflags = [
+      "-Wl,-rpath=\$ORIGIN/",
+      "-Wl,-rpath-link=",
+    ]
+  }
 }

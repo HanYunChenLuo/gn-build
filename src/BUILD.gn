@@ -1,17 +1,18 @@
-executable("hello_world") {
-    cflags = ["-std=c++11"]
-    sources = [
-        "test.cpp",
-    ]
-    libs = [
-        "opencv_core",
-        "opencv_imgcodecs",
-        "opencv_imgproc",
-        "opencv_highgui",
-        "opencv_videoio",
-    ]
-    include_dirs= [
-        "/usr/local/include",
-        "/opt/homebrew/include/opencv4"
-    ]
+# Copyright 2014 The Chromium Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+shared_library("hello_shared") {
+  sources = [
+    "hello_shared.cpp",
+    "hello_shared.h",
+  ]
+
+  defines = [ "HELLO_SHARED_IMPLEMENTATION" ]
+}
+
+static_library("hello_static") {
+  sources = [
+    "hello_static.cpp",
+    "hello_static.h",
+  ]
 }

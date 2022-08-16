@@ -1,5 +1,14 @@
-group("default") {
-    deps = [
-        "//src:hello_world",
-    ]
+# Copyright 2014 The Chromium Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+executable("hello") {
+  sources = [ "main.cpp" ]
+  include_dirs = [ "//src" ]
+
+  deps = [
+    "//src:hello_shared",
+    "//src:hello_static",
+  ]
+  libs=["opencv_core", "opencv_imgproc", "opencv_imgcodecs", "opencv_highgui"]
 }
