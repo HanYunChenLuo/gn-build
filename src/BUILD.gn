@@ -1,5 +1,17 @@
 executable("hello_world") {
+    cflags = ["-std=c++11"]
     sources = [
         "test.cpp",
+    ]
+    libs = [
+        "opencv_core",
+        "opencv_imgcodecs",
+        "opencv_imgproc",
+        "opencv_highgui",
+        "opencv_videoio",
+    ]
+    include_dirs= [
+        "/usr/local/include",
+        "/opt/homebrew/include/opencv4"
     ]
 }

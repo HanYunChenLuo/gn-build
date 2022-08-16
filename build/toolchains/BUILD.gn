@@ -1,7 +1,7 @@
 toolchain("gcc") {
     tool("cc") {
         depfile = ".d"
-        command = "gcc -MMD -MF $depfile -c {{source}} -o {{output}}"
+        command = "gcc -MMD -MF $depfile {{defines}} {{include_dirs}} {{cflags}} {{cflags_c}} -c {{source}} -o {{output}}"
         depsformat = "gcc"
         description = "CC"
         outputs = [
@@ -11,7 +11,7 @@ toolchain("gcc") {
 
     tool("cxx") {
         depfile = ".d"
-        command = "g++ -MMD -MF $depfile -c {{source}} -o {{output}}"
+        command = "g++ -MMD -MF $depfile {{defines}} {{include_dirs}} {{cflags}} {{cflags_c}} -c {{source}} -o {{output}}"
         depsformat = "gcc"
         description = "CXX"
         outputs = [
@@ -51,7 +51,7 @@ toolchain("gcc") {
     tool("link") {
         outfile = "{{output_dir}}/bin/{{target_output_name}}{{output_extension}}"
         rspfile = "{{output}}.rsp"
-        command = "g++ -o $outfile @$rspfile"
+        command = "g++ -o {{libs}} $outfile @$rspfile"
         description = "LINK $outfile"
         rspfile_content = "{{inputs}}"
         outputs = [
