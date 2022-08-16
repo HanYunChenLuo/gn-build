@@ -4,11 +4,12 @@
 
 executable("hello") {
   sources = [ "main.cpp" ]
-  include_dirs = [ "//src/cpp" ]
+
+  include_dirs = [
+    "//src/cpp",
+  ]
 
   deps = [
-    "//src/cpp:hello_static",
-    "//src/cpp:hello_shared"
+    "//src:c++_libraries",
   ]
-  libs=["opencv_core", "opencv_imgproc", "opencv_imgcodecs", "opencv_highgui"]
 }

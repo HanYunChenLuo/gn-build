@@ -1,132 +1,55 @@
-# Copyright 2014 The Chromium Authors. All rights reserved.
+# Copyright 2015 The Chromium Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-template("li_toolchain"){
-toolchain(target_name) {
-  cc = invoker.cc
-  cxx = invoker.cxx
-  ar = invoker.ar
-  tool("cc") {
-    depfile = "{{output}}.d"
-    if(is_mac){
-      command = "$cc -arch $current_cpu -MMD -MF $depfile {{defines}} {{include_dirs}} {{cflags}} {{cflags_c}} -c {{source}} -o {{output}}"
-    } else {
-      command = "$cc -MMD -MF $depfile {{defines}} {{include_dirs}} {{cflags}} {{cflags_c}} -c {{source}} -o {{output}}"
-    }
 
-    depsformat = "gcc"
-    description = "CC {{output}}"
-    outputs =
-        [ "{{source_out_dir}}/{{target_output_name}}.{{source_name_part}}.o" ]
-  }
+# Toolchain-related configuration that may be needed outside the context of the
+# toolchain() rules themselves.
 
-  tool("cxx") {
-    depfile = "{{output}}.d"
-    if(is_mac){
-      command = "$cxx -arch $current_cpu -MMD -MF $depfile {{defines}} {{include_dirs}} {{cflags}} {{cflags_cc}} -c {{source}} -o {{output}}"
-    } else {
-      command = "$cxx -MMD -MF $depfile {{defines}} {{include_dirs}} {{cflags}} {{cflags_cc}} -c {{source}} -o {{output}}"
-    }
-    depsformat = "gcc"
-    description = "CXX {{output}}"
-    outputs =
-        [ "{{source_out_dir}}/{{target_output_name}}.{{source_name_part}}.o" ]
-  }
-
-  tool("alink") {
-    command = "rm -f {{output}} && ar rcs {{output}} {{inputs}}"
-    description = "$ar {{target_output_name}}{{output_extension}}"
-
-    outputs =
-        [ "{{target_out_dir}}/{{target_output_name}}{{output_extension}}" ]
-    default_output_extension = ".a"
-    output_prefix = "lib"
-  }
-
-  tool("solink") {
-    soname = "{{target_output_name}}{{output_extension}}"  # e.g. "libfoo.so".
-    sofile = "{{output_dir}}/$soname"
-    rspfile = soname + ".rsp"
-    if (is_mac) {
-      os_specific_option = "-install_name @executable_path/$sofile"
-      rspfile_content = "{{inputs}} {{solibs}} {{libs}}"
-    } else {
-      os_specific_option = "-Wl,-soname=$soname"
-      rspfile_content = "-Wl,--whole-archive {{inputs}} {{solibs}} -Wl,--no-whole-archive {{libs}}"
-    }
-
-    command = "$cxx -shared {{ldflags}} -o $sofile $os_specific_option @$rspfile"
-
-    description = "SOLINK $soname"
-
-    # Use this for {{output_extension}} expansions unless a target manually
-    # overrides it (in which case {{output_extension}} will be what the target
-    # specifies).
-    default_output_extension = ".so"
-
-    # Use this for {{output_dir}} expansions unless a target manually overrides
-    # it (in which case {{output_dir}} will be what the target specifies).
-    default_output_dir = "{{root_out_dir}}"
-
-    outputs = [ sofile ]
-    link_output = sofile
-    depend_output = sofile
-    output_prefix = "lib"
-  }
-
-  tool("link") {
-    outfile = "{{target_output_name}}{{output_extension}}"
-    rspfile = "$outfile.rsp"
-    if (is_mac) {
-      command = "$cxx {{ldflags}} -o $outfile @$rspfile {{solibs}} {{libs}}"
-    } else {
-      command = "$cxx {{ldflags}} -o $outfile -Wl,--start-group @$rspfile {{solibs}} -Wl,--end-group {{libs}}"
-    }
-    description = "LINK $outfile"
-    default_output_dir = "{{root_out_dir}}"
-    rspfile_content = "{{inputs}}"
-    outputs = [ outfile ]
-  }
-
-  tool("stamp") {
-    command = "touch {{output}}"
-    description = "STAMP {{output}}"
-  }
-
-  tool("copy") {
-    command = "cp -af {{source}} {{output}}"
-    description = "COPY {{source}} {{output}}"
-  }
-  tool("rust_bin") {
-      depfile = "{{target_out_dir}}/{{crate_name}}.d"
-      outfile = "{{target_out_dir}}/{{crate_name}}"
-      command = "rustc --crate-name {{crate_name}} {{source}} --crate-type {{crate_type}} -O --emit=dep-info=$depfile,link {{rustflags}} -o $outfile {{rustdeps}} {{externs}}"
-      description = "RUST $outfile"
-      outputs = [ outfile ]
-    }
-
-    tool("rust_staticlib") {
-      depfile = "{{target_out_dir}}/{{crate_name}}.d"
-      outfile = "{{target_out_dir}}/{{crate_name}}.a"
-      command = "rustc --crate-name {{crate_name}} {{source}} --crate-type {{crate_type}} -O --emit=dep-info=$depfile,link {{rustflags}} -o $outfile {{rustdeps}} {{externs}}"
-      description = "RUST $outfile"
-      outputs = [ outfile ]
-    }
-
-    tool("rust_rlib") {
-      depfile = "{{target_out_dir}}/{{crate_name}}.d"
-      outfile = "{{target_out_dir}}/lib{{crate_name}}.rlib"
-      command = "rustc --crate-name {{crate_name}} {{source}} --crate-type {{crate_type}} -O --emit=dep-info=$depfile,link {{rustflags}} -o $outfile {{rustdeps}} {{externs}}"
-      description = "RUST $outfile"
-      outputs = [ outfile ]
-    }
-
-    tool("rust_cdylib") {
-      depfile = "{{target_out_dir}}/{{crate_name}}.d"
-      outfile = "{{target_out_dir}}/lib{{crate_name}}.so"
-      command = "rustc --crate-name {{crate_name}} {{source}} --crate-type {{crate_type}} -O --emit=dep-info=$depfile,link {{rustflags}} -o $outfile {{rustdeps}} {{externs}}"
-      description = "RUST $outfile"
-      outputs = [ outfile ]
-    }
+declare_args() {
+  # How many symbols to include in the build. This affects the performance of
+  # the build since the symbols are large and dealing with them is slow.
+  #   2 means regular build with symbols.
+  #   1 means minimal symbols, usually enough for backtraces only.
+  #   0 means no symbols.
+  symbol_level = 2
 }
+
+# If it wasn't manually set, set to an appropriate default.
+assert(symbol_level >= 0 && symbol_level <= 2, "Invalid symbol_level")
+
+# Extension for shared library files (including leading dot).
+if (is_mac) {
+  shlib_extension = ".dylib"
+} else if (is_posix) {
+  shlib_extension = ".so"
+} else if (is_win) {
+  shlib_extension = ".dll"
+} else {
+  assert(false, "Platform not supported")
+}
+
+# Prefix for shared library files.
+if (is_posix) {
+  shlib_prefix = "lib"
+} else {
+  shlib_prefix = ""
+}
+
+# While other "tool"s in a toolchain are specific to the target of that
+# toolchain, the "stamp" and "copy" tools are really generic to the host;
+# but each toolchain must define them separately.  GN doesn't allow a
+# template instantiation inside a toolchain definition, so some boilerplate
+# has to be repeated in each toolchain to define these two tools.  These
+# four variables reduce the duplication in that boilerplate.
+stamp_description = "STAMP {{output}}"
+copy_description = "COPY {{source}} {{output}}"
+if (host_os == "win") {
+  copy_path =
+      rebase_path("//build/toolchain/win/recursive_mirror.py", root_build_dir)
+
+  stamp_command = "cmd /c type nul > \"{{output}}\""
+  copy_command = "$python_path $copy_path {{source}} {{output}}"
+} else {
+  stamp_command = "touch {{output}}"
+  copy_command = "ln -f {{source}} {{output}} 2>/dev/null || (rm -rf {{output}} && cp -af {{source}} {{output}})"
 }

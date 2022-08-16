@@ -1,16 +1,20 @@
-# Copyright 2014 The Chromium Authors. All rights reserved.
+# Copyright 2016 The Chromium Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-import("//build/toolchain/toolchain.gni")
 
-li_toolchain("gcc"){
-  cc="/usr/bin/gcc"
-  cxx="/usr/bin/g++"
-  ar="/usr/bin/ar"
+import("//build/toolchain/concurrent_links.gni")
+
+declare_args() {
+  # Pool for action tasks.
+  action_pool_depth = 0
 }
 
-li_toolchain("clang"){
-  cc="/usr/bin/clang"
-  cxx="/usr/bin/clang++"
-  ar="/usr/bin/ar"
+if (current_toolchain == default_toolchain) {
+  pool("link_pool") {
+    depth = concurrent_links
+  }
+
+  pool("action_pool") {
+    depth = action_pool_depth
+  }
 }
