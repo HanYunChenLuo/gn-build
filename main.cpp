@@ -10,7 +10,9 @@
 
 int main(int argc, char* argv[]) {
     //   printf("%s, %s\n", GetStaticText(), GetSharedText());
-    std::cout << GetStaticText() << ", " << GetSharedText() << std::endl;
+    // std::cout << GetStaticText() << ", " << GetSharedText() << std::endl;
+    // std::cout << GetStaticText() << std::endl;
+    std::cout << GetSharedText() << std::endl;
     cv::Mat img = cv::imread("./res/front.bmp");
     cv::imshow("img", img);
     cv::waitKey(0);

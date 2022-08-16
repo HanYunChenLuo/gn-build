@@ -10,6 +10,14 @@ config("compiler_defaults") {
     ]
     lib_dirs = [ "/usr/local/lib" ]
     include_dirs = ["/usr/local/include/opencv4"]
+  } else if (current_os == "mac") {
+    cflags = [
+      "-std=c++11",
+      "-fPIC",
+      "-pthread",
+    ]
+    include_dirs = ["/opt/homebrew/include/opencv4"]
+    lib_dirs = ["/opt/homebrew/lib"]
   }
 }
 
