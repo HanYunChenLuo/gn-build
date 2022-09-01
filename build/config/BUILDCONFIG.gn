@@ -128,10 +128,19 @@ declare_args() {
   # release (!is_debug). This might be better expressed as a tri-state
   # (debug, release, official) but for historical reasons there are two
   # separate flags.
+  #
+  # IMPORTANT NOTE: (!is_debug) is *not* sufficient to get satisfying
+  # performance. In particular, DCHECK()s are still enabled for release builds,
+  # which can halve overall performance, and do increase memory usage. Always
+  # set "is_official_build" to true for any build intended to ship to end-users.
   is_official_build = false
 
   # Set to true when compiling with the Clang compiler.
-  is_clang = false
+  is_clang = current_os != "linux" ||
+             (current_cpu != "s390x" && current_cpu != "s390" &&
+              current_cpu != "ppc64" && current_cpu != "ppc" &&
+              current_cpu != "mips" && current_cpu != "mips64" &&
+              current_cpu != "riscv64")
 
   # Allows the path to a custom target toolchain to be injected as a single
   # argument, and set as the default toolchain.
@@ -141,11 +150,6 @@ declare_args() {
   # every toolchain can pass through the "global" value via toolchain_args().
   host_toolchain = ""
 
-  # Label of the external projects directory.
-  # By convention, all 3rd-party projects should end up in this directory, so they
-  # can depend on each other (e.g. $external/mysql_connector -> $external/zlib)
-  external = "//external"
-
   # DON'T ADD MORE FLAGS HERE. Read the comment above.
 }
 
@@ -154,7 +158,19 @@ declare_args() {
   is_debug = !is_official_build
 }
 
+declare_args() {
+  # Component build. Setting to true compiles targets declared as "components"
+  # as shared libraries loaded dynamically. This speeds up development time.
+  # When false, components will be linked statically.
+  #
+  # For more information see
+  # https://chromium.googlesource.com/chromium/src/+/main/docs/component_build.md
+  is_component_build = is_debug && current_os != "ios"
+}
+
 assert(!(is_debug && is_official_build), "Can't do official debug builds")
+assert(!(current_os == "ios" && is_component_build),
+       "Can't use component build on iOS")
 
 # ==============================================================================
 # TOOLCHAIN SETUP
@@ -175,49 +191,66 @@ if (host_toolchain == "") {
   # TODO(dpranke): Add some sort of assert here that verifies that
   # no toolchain omitted host_toolchain from its toolchain_args().
 
-  if (host_os == "mac") {
+  if (host_os == "linux") {
+    if (target_os != "linux") {
+      host_toolchain = "//build/toolchain/linux:clang_$host_cpu"
+    } else if (is_clang) {
+      host_toolchain = "//build/toolchain/linux:clang_$host_cpu"
+    } else {
+      host_toolchain = "//build/toolchain/linux:$host_cpu"
+    }
+  } else if (host_os == "mac") {
     host_toolchain = "//build/toolchain/mac:clang_$host_cpu"
   } else if (host_os == "win") {
-    # On Windows always use the target CPU for host builds. On the
+    # On Windows always use the target CPU for host builds for x86/x64. On the
     # configurations we support this will always work and it saves build steps.
-    if (is_clang) {
-      host_toolchain = "//build/toolchain/win:clang_$target_cpu"
-    } else {
-      host_toolchain = "//build/toolchain/win:$target_cpu"
-    }
-  } else {
-    if (target_os != host_os) {
-      # TODO(dpranke) - is_clang normally applies only to the target
-      # build, and there is no way to indicate that you want to override
-      # it for both the target build *and* the host build. Do we need to
-      # support this?
-      host_toolchain = "//build/toolchain/posix:clang_$host_cpu"
+    # Windows ARM64 targets require an x64 host for cross build.
+    if (target_cpu == "x86" || target_cpu == "x64") {
+      if (is_clang) {
+        host_toolchain = "//build/toolchain/win:win_clang_$target_cpu"
+      } else {
+        host_toolchain = "//build/toolchain/win:$target_cpu"
+      }
     } else if (is_clang) {
-      host_toolchain = "//build/toolchain/posix:clang_$host_cpu"
+      host_toolchain = "//build/toolchain/win:win_clang_$host_cpu"
     } else {
-      host_toolchain = "//build/toolchain/posix:$host_cpu"
+      host_toolchain = "//build/toolchain/win:$host_cpu"
     }
+  } else if (host_os == "aix") {
+    host_toolchain = "//build/toolchain/aix:$host_cpu"
+  } else if (host_os == "zos") {
+    host_toolchain = "//build/toolchain/zos:$host_cpu"
+  } else {
+    assert(false, "Unsupported host_os: $host_os")
   }
 }
 
 _default_toolchain = ""
 
 if (target_os == "android") {
+  assert(host_os == "linux" || host_os == "mac",
+         "Android builds are only supported on Linux and Mac hosts.")
+  _default_toolchain = "//build/toolchain/android:android_clang_$target_cpu"
+} else if (target_os == "chromeos" || target_os == "linux") {
+  # See comments in build/toolchain/cros/BUILD.gn about board compiles.
   if (is_clang) {
-    _default_toolchain = "//build/toolchain/android:android_clang_$target_cpu"
+    _default_toolchain = "//build/toolchain/linux:clang_$target_cpu"
   } else {
-    _default_toolchain = "//build/toolchain/android:android_$target_cpu"
+    _default_toolchain = "//build/toolchain/linux:$target_cpu"
   }
+} else if (target_os == "fuchsia") {
+  _default_toolchain = "//build/toolchain/fuchsia:$target_cpu"
 } else if (target_os == "ios") {
-  _default_toolchain = "//build/toolchain/mac:ios_clang_$target_cpu"
+  _default_toolchain = "//build/toolchain/ios:ios_clang_$target_cpu"
 } else if (target_os == "mac") {
-  assert(host_os == "mac", "Mac cross-compiles are unsupported.")
-  _default_toolchain = host_toolchain
+  assert(host_os == "mac" || host_os == "linux",
+         "Mac cross-compiles are unsupported.")
+  _default_toolchain = "//build/toolchain/mac:clang_$target_cpu"
 } else if (target_os == "win") {
-  # On Windows we use the same toolchain for host and target by default.
-  assert(target_os == host_os, "Win cross-compiles only work on win hosts.")
+  # On Windows, we use the same toolchain for host and target by default.
+  # Beware, win cross builds have some caveats, see docs/win_cross.md
   if (is_clang) {
-    _default_toolchain = "//build/toolchain/win:clang_$target_cpu"
+    _default_toolchain = "//build/toolchain/win:win_clang_$target_cpu"
   } else {
     _default_toolchain = "//build/toolchain/win:$target_cpu"
   }
@@ -227,12 +260,12 @@ if (target_os == "android") {
   assert(target_cpu == "x86" || target_cpu == "x64" || target_cpu == "arm" ||
          target_cpu == "arm64")
   _default_toolchain = "//build/toolchain/win:uwp_$target_cpu"
+} else if (target_os == "aix") {
+  _default_toolchain = "//build/toolchain/aix:$target_cpu"
+} else if (target_os == "zos") {
+  _default_toolchain = "//build/toolchain/zos:$target_cpu"
 } else {
-  if (is_clang) {
-    _default_toolchain = "//build/toolchain/posix:clang_$target_cpu"
-  } else {
-    _default_toolchain = "//build/toolchain/posix:$target_cpu"
-  }
+  assert(false, "Unsupported target_os: $target_os")
 }
 
 # If a custom toolchain has been set in the args, set it as default. Otherwise,
@@ -250,24 +283,22 @@ if (custom_toolchain != "") {
 # We set these various is_FOO booleans for convenience in writing OS-based
 # conditions.
 #
-# - is_android, is_chromeos, is_ios, is_freebsd, and is_win should be obvious.
+# - is_android should be obvious.
 # - is_mac is set only for desktop Mac. It is not set on iOS.
 # - is_posix is true for mac and any Unix-like system (basically everything
 #   except Fuchsia and Windows).
 # - is_linux is true for desktop Linux, but not for ChromeOS nor Android (which
 #   is generally too different despite being based on the Linux kernel).
+#
+# Do not add more is_* variants here for random lesser-used Unix systems like
+# aix or one of the BSDs. If you need to check these, just check the
+# current_os value directly.
 
 is_android = current_os == "android"
-is_chromeos = current_os == "chromeos"
-is_fuchsia = current_os == "fuchsia"
-is_ios = current_os == "ios"
 is_linux = current_os == "linux"
 is_mac = current_os == "mac"
-is_win = current_os == "win" || current_os == "winuwp"
-is_freebsd = current_os == "freebsd"
-
-is_apple = is_ios || is_mac
-is_posix = !is_win && !is_fuchsia
+is_apple = is_mac
+is_posix = is_android || is_linux || is_mac
 
 # =============================================================================
 # TARGET DEFAULTS
@@ -288,36 +319,42 @@ is_posix = !is_win && !is_fuchsia
 
 # Holds all configs used for running the compiler.
 default_compiler_configs = [
-  "//build/config:extra_flags",
-  "//build/config:afdo",
-  "//build/config:compiler",
-  "//build/config:pthread",
-  "//build/config:stackrealign",
-  "//build/config:compiler_arm_fpu",
-  "//build/config:compiler_arm_thumb",
-  "//build/config:default_optimization",
-  "//build/config:default_stack_frames",
-  "//build/config:default_symbols",
-  "//build/config:c++17",
-  "//build/config:rtti",
-  "//build/config:exceptions",
-  "//build/config:runtime_library",
-  "//build/config:symbol_visibility_hidden",
-]
-if (is_win) {
-  default_compiler_configs += [
-    "//build/config/win:utf8",
-    "//build/config/win:default_crt",
-    "//build/config/win:lean_and_mean",
-    "//build/config/win:nominmax",
-    "//build/config/win:winver",
-    "//build/config/win:vs_code_analysis",
-  ]
+  "//build/config:feature_flags",
+  "//build/config/compiler:compiler",
+  "//build/config/compiler:compiler_arm_fpu",
+  "//build/config/compiler:compiler_arm_thumb",
+  "//build/config/compiler:default_include_dirs",
+  "//build/config/compiler:default_init_stack_vars",
+  "//build/config/compiler:default_optimization",
+  "//build/config/compiler:default_stack_frames",
+  "//build/config/compiler:default_symbols",
+  "//build/config/compiler:export_dynamic",
+  "//build/config/compiler:no_exceptions",
+  "//build/config/compiler:no_rtti",
+  "//build/config/compiler:no_unresolved_symbols",
+  "//build/config/compiler:runtime_library",
+  "//build/config/compiler:thin_archive",
+  "//build/config/compiler:thinlto_optimize_default",
+  "//build/config/coverage:default_coverage",]
+
+
+if (is_posix) {
+  if (current_os != "aix") {
+    default_compiler_configs +=
+        [ "//build/config/gcc:symbol_visibility_hidden" ]
+  }
 }
 
 if (is_android) {
   default_compiler_configs +=
-      [ "//build/config/android:default_cygprofile_instrumentation" ]
+      [ "//build/config/android:default_orderfile_instrumentation" ]
+}
+
+if (is_clang) {
+  default_compiler_configs += [
+    "//build/config/clang:find_bad_constructs",
+    "//build/config/clang:extra_warnings",
+  ]
 }
 
 # Debug/release-related defines.
@@ -334,24 +371,17 @@ set_defaults("static_library") {
 set_defaults("source_set") {
   configs = default_compiler_configs
 }
+set_defaults("rust_library") {
+  configs = default_compiler_configs
+}
+set_defaults("rust_proc_macro") {
+  configs = default_compiler_configs
+}
 
 # Compute the set of configs common to all linked targets (shared libraries,
 # loadable modules, executables) to avoid duplication below.
-if (is_win) {
-  # Windows linker setup for EXEs and DLLs.
-  # Many targets remove these configs, so they are not contained within
-  # //build/config:executable_config for easy removal.
-  _linker_configs = [
-    "//build/config/win:default_incremental_linking",
-
-    # Default to console-mode apps. Most of our targets are tests and such
-    # that shouldn't use the windows subsystem.
-    "//build/config/win:console",
-  ]
-} else if (is_mac || is_ios) {
+if (is_mac) {
   _linker_configs = [ "//build/config/mac:strip_all" ]
-} else if (is_android || is_linux || is_freebsd) {
-  _linker_configs = [ "//build/config/posix:no_undefined" ]
 } else {
   _linker_configs = []
 }
@@ -361,6 +391,8 @@ default_executable_configs = default_compiler_configs + [
                                "//build/config:default_libs",
                                "//build/config:executable_config",
                              ] + _linker_configs
+
+
 set_defaults("executable") {
   configs = default_executable_configs
 }
@@ -372,10 +404,154 @@ default_shared_library_configs = default_compiler_configs + [
                                    "//build/config:shared_library_config",
                                  ] + _linker_configs
 
+if (is_android) {
+  # Strip native JNI exports from shared libraries by default. Binaries that
+  # want this can remove this config.
+  default_shared_library_configs +=
+      [ "//build/config/android:hide_all_but_jni_onload" ]
+}
 set_defaults("shared_library") {
   configs = default_shared_library_configs
 }
-
 set_defaults("loadable_module") {
   configs = default_shared_library_configs
+
+  # loadable_modules are generally used by other libs, not just via JNI.
+  if (is_android) {
+    configs -= [ "//build/config/android:hide_all_but_jni_onload" ]
+  }
+}
+
+# A helper for forwarding testonly and visibility.
+# Forwarding "*" does not include variables from outer scopes (to avoid copying
+# all globals into each template invocation), so it will not pick up
+# file-scoped or outer-template-scoped variables. Normally this behavior is
+# desired, but "visibility" and "testonly" are commonly defined in outer scopes.
+# Explicitly forwarding them in forward_variables_from() works around this
+# nuance. See //build/docs/writing_gn_templates.md#using-forward_variables_from
+TESTONLY_AND_VISIBILITY = [
+  "testonly",
+  "visibility",
+]
+
+# Sets default dependencies for executable and shared_library targets.
+#
+# Variables
+#   no_default_deps: If true, no standard dependencies will be added.
+#       Targets that set this usually also want to remove
+#       "//build/config/compiler:runtime_library" from configs (to remove
+#       its subconfig "//build/config/c++:runtime_library").
+foreach(_target_type,
+        [
+          "executable",
+          "loadable_module",
+          "shared_library",
+        ]) {
+  template(_target_type) {
+    # Alias "target_name" because it is clobbered by forward_variables_from().
+    _target_name = target_name
+    target(_target_type, _target_name) {
+      forward_variables_from(invoker,
+                             "*",
+                             TESTONLY_AND_VISIBILITY + [ "no_default_deps" ])
+      forward_variables_from(invoker, TESTONLY_AND_VISIBILITY)
+      if (!defined(deps)) {
+        deps = []
+      }
+      if (!defined(invoker.no_default_deps) || !invoker.no_default_deps) {
+        # This pulls in one of:
+        # //build/config:executable_deps
+        # //build/config:loadable_module_deps
+        # //build/config:shared_library_deps
+        # (This explicit list is so that grepping for these configs finds where
+        # they are used.)
+        deps += [ "//build/config:${_target_type}_deps" ]
+      }
+
+      # On Android, write shared library output file to metadata. We will use
+      # this information to, for instance, collect all shared libraries that
+      # should be packaged into an APK.
+      if (!defined(invoker.metadata) && is_android &&
+          (_target_type == "shared_library" ||
+           _target_type == "loadable_module")) {
+        _output_name = _target_name
+        if (defined(invoker.output_name)) {
+          _output_name = invoker.output_name
+        }
+
+        # Remove 'lib' prefix from output name if it exists.
+        _magic_prefix = "$0x01$0x01"
+        _output_name = string_replace("${_magic_prefix}${_output_name}",
+                                      "${_magic_prefix}lib",
+                                      _magic_prefix,
+                                      1)
+        _output_name = string_replace(_output_name, _magic_prefix, "", 1)
+
+        if (defined(output_extension)) {
+          _shlib_extension = ".$output_extension"
+        } else if (is_component_build && _target_type != "loadable_module") {
+          _shlib_extension = ".cr.so"
+        } else {
+          _shlib_extension = ".so"
+        }
+
+        metadata = {
+          shared_libraries =
+              [ "$root_out_dir/lib${_output_name}${_shlib_extension}" ]
+        }
+      }
+    }
+  }
+}
+
+# ==============================================================================
+# COMPONENT SETUP
+# ==============================================================================
+
+# Defines a component, which equates to a shared_library when
+# is_component_build == true and a static_library otherwise.
+#
+# Use static libraries for the static build rather than source sets because
+# many of of our test binaries link many large dependencies but often don't
+# use large portions of them. The static libraries are much more efficient to
+# link in this situation since only the necessary object files are linked.
+#
+# The invoker can override the type of the target in the non-component-build
+# case by setting static_component_type to either "source_set" or
+# "static_library". If unset, the default will be used.
+template("component") {
+  if (is_component_build) {
+    _component_mode = "shared_library"
+  } else if (defined(invoker.static_component_type)) {
+    assert(invoker.static_component_type == "static_library" ||
+           invoker.static_component_type == "source_set")
+    _component_mode = invoker.static_component_type
+  } else if (!defined(invoker.sources) || invoker.sources == []) {
+    # When there are no sources defined, use a source set to avoid creating
+    # an empty static library (which generally don't work).
+    _component_mode = "source_set"
+  } else {
+    _component_mode = "static_library"
+  }
+  target(_component_mode, target_name) {
+    forward_variables_from(invoker, TESTONLY_AND_VISIBILITY)
+    forward_variables_from(invoker, "*", TESTONLY_AND_VISIBILITY)
+  }
+}
+
+# Component defaults
+# Set a variable since we also want to make this available
+# to mixed_component.gni
+if (is_component_build) {
+  default_component_configs = default_shared_library_configs
+  if (is_android) {
+    default_component_configs -=
+        [ "//build/config/android:hide_all_but_jni_onload" ]
+  }
+} else {
+  default_component_configs = default_compiler_configs
+}
+
+set_defaults("component") {
+  configs = default_component_configs
 }

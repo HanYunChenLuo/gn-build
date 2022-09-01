@@ -2,9 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/toolchain/mac/mac_sdk.gni")
+import("//build/config/mac/mac_sdk.gni")
 import("//build/toolchain/apple/toolchain.gni")
-
 # Specialisation of the apple_toolchain template to declare the toolchain
 # and its tools to build target for macOS platform.
 template("mac_toolchain") {
@@ -19,17 +18,6 @@ template("mac_toolchain") {
     toolchain_args = {
       forward_variables_from(invoker.toolchain_args, "*")
       current_os = "mac"
-
-      if (target_os == "ios") {
-        # TODO(crbug.com/753445): the use_sanitizer_coverage arg is currently
-        # not supported by the Chromium mac_clang_x64 toolchain on iOS
-        # distribution.
-        use_sanitizer_coverage = false
-
-        # Do not use Xcode version of clang when building macOS tools for the
-        # host even if this is the version used to build for the iOS target.
-        use_xcode_clang = false
-      }
     }
   }
 }
@@ -94,6 +82,16 @@ mac_toolchain("clang_x64_v8_mips64el") {
 
     if (defined(v8_current_cpu)) {
       v8_current_cpu = "mips64el"
+    }
+  }
+}
+
+mac_toolchain("clang_arm64_v8_x64") {
+  toolchain_args = {
+    current_cpu = "arm64"
+
+    if (defined(v8_current_cpu)) {
+      v8_current_cpu = "x64"
     }
   }
 }

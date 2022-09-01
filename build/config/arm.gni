@@ -110,4 +110,20 @@ if (current_cpu == "arm") {
   # arm64 supports only "hard".
   arm_float_abi = "hard"
   arm_use_neon = true
+  declare_args() {
+    # Enables the new Armv8 branch protection features. Valid strings are:
+    # - "pac": Enables Pointer Authentication Code (PAC, featured in Armv8.3)
+    # - "standard": Enables both PAC and Branch Target Identification (Armv8.5).
+    # - "none": No branch protection.
+    arm_control_flow_integrity = "standard"
+
+    # TODO(cavalcantii): enable the feature for the following OSes next.
+    if (is_mac  || target_cpu != "arm64") {
+      # target_cpu != "arm64" covers some cases (e.g. the ChromeOS x64 MSAN
+      # build) where the target platform is x64, but V8 is configured to use
+      # the arm64 simulator. Pointer authentication doesn't work properly
+      # in this mode (yet).
+      arm_control_flow_integrity = "none"
+    }
+  }
 }

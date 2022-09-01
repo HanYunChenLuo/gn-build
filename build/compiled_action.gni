@@ -66,11 +66,7 @@
 # saves unnecessarily compiling your tool for the target platform. But if you
 # need a target build of your tool as well, just leave off the if statement.
 
-if (host_os == "win") {
-  _host_executable_suffix = ".exe"
-} else {
-  _host_executable_suffix = ""
-}
+_host_executable_suffix = ""
 
 template("compiled_action") {
   assert(defined(invoker.tool), "tool must be defined for $target_name")

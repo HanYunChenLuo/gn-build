@@ -5,11 +5,15 @@
 import("//build/toolchain/concurrent_links.gni")
 
 declare_args() {
-  # Pool for action tasks.
-  action_pool_depth = 0
+  # Pool for non goma tasks.
+  action_pool_depth = -1
 }
 
 if (current_toolchain == default_toolchain) {
+  if (action_pool_depth == -1) {
+    action_pool_depth = exec_script("get_cpu_count.py", [], "value")
+  }
+
   pool("link_pool") {
     depth = concurrent_links
   }

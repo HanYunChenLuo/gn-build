@@ -10,6 +10,8 @@ executable("hello") {
   ]
 
   deps = [
-    "//src:c++_libraries",
+    # "//src:c++_libraries",
+    "//src/cpp:hello_shared",
+    "//src/cpp:hello_static",
   ]
 }

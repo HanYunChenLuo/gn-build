@@ -2,10 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/libc++/settings.gni")
-import("//build/toolchain/apple/symbols.gni")
-import("//build/toolchain/mac/mac_sdk.gni")
-import("//build/toolchain/sysroot.gni")
+import("//build/config/apple/symbols.gni")
+import("//build/config/c++/c++.gni")
+import("//build/config/mac/mac_sdk.gni")
+import("//build/config/sysroot.gni")
 
 # This is included by reference in the //build/config/compiler config that
 # is applied to all targets. It is here to separate out the logic.
@@ -18,8 +18,6 @@ config("compiler") {
     clang_arch = "x86_64"
   } else if (current_cpu == "x86") {
     clang_arch = "i386"
-  } else if (current_cpu == "armv7" || current_cpu == "arm") {
-    clang_arch = "armv7"
   } else if (current_cpu == "arm64") {
     clang_arch = current_cpu
   } else {
@@ -37,9 +35,7 @@ config("compiler") {
   # This is here so that all files get recompiled after an Xcode update.
   # (defines are passed via the command line, and build system rebuild things
   # when their commandline changes). Nothing should ever read this define.
-  if (mac_use_sdk) {
-    defines = [ "CR_XCODE_VERSION=$xcode_version" ]
-  }
+  defines = [ "CR_XCODE_VERSION=$xcode_version" ]
 
   asmflags = common_mac_flags
   cflags = common_mac_flags
@@ -64,15 +60,11 @@ config("compiler") {
 # that is Mac-only. Please see that target for advice on what should go in
 # :runtime_library vs. :compiler.
 config("runtime_library") {
-  if (mac_use_sdk) {
-    common_flags = [
-      "-isysroot",
-      rebase_path(sysroot, root_build_dir),
-      "-mmacosx-version-min=$mac_deployment_target",
-    ]
-  } else {
-    common_flags=[]
-  }
+  common_flags = [
+    "-isysroot",
+    rebase_path(sysroot, root_build_dir),
+    "-mmacos-version-min=$mac_deployment_target",
+  ]
 
   asmflags = common_flags
   cflags = common_flags
@@ -87,19 +79,29 @@ config("runtime_library") {
 
 # On Mac, this is used for everything except static libraries.
 config("mac_dynamic_flags") {
-  ldflags = [
-    # Always load Objective-C categories and classes.
-    "-Wl,-ObjC",
+  ldflags = [ "-Wl,-ObjC" ]  # Always load Objective-C categories and classes.
 
-    # Load shared libraries next to the target.
-    "-Wl,-rpath,@loader_path/.",
-  ]
-}
+  if (is_component_build) {
+    ldflags += [
+      # Path for loading shared libraries for unbundled binaries.
+      "-Wl,-rpath,@loader_path/.",
 
-# On Mac, this is used only for executables.
-config("mac_executable_flags") {
-  # Remove this when targeting >=10.7 since it is the default in that config.
-  ldflags = [ "-Wl,-pie" ]  # Position independent.
+      # Path for loading shared libraries for bundled binaries. Get back from
+      # Binary.app/Contents/MacOS.
+      "-Wl,-rpath,@loader_path/../../..",
+    ]
+
+    # Path for loading shared libraries for unbundled binaries for
+    # the host toolchain (see https://crbug.com/1315433). Only used
+    # for when building for iOS.
+    if (target_os == "ios" && current_toolchain == host_toolchain) {
+      ldflags += [
+        "-Wl,-rpath,@loader_path/" +
+            rebase_path(get_label_info(":mac_dynamic_flags", "root_out_dir"),
+                        root_build_dir),
+      ]
+    }
+  }
 }
 
 # The ldflags referenced below are handled by
@@ -113,3 +115,22 @@ config("strip_all") {
     ldflags = [ "-Wcrl,strip,-x,-S" ]
   }
 }
+
+# When building with Goma, all inputs must be relative to the build directory.
+# If using the system Xcode, which typically resides outside the build root, a
+# symlink to the SDK is created in the build directory, and the path to that
+# link is stored in $mac_sdk_path. If an action references a file in the SDK as
+# an input, GN will complain that no target generates the file because it is
+# below the $root_build_dir. The below action lists as outputs the files in the
+# SDK that are referenced as inputs to actions, so that GN thinks a target has
+# generated them. The list is centralized here, as multiple targets need to
+# reference the same files, and an output can only be generated once.
+#
+# The symbolic link for $mac_sdk_path is set up by
+# //build/config/apple/sdk_info.py in //build/config/mac/mac_sdk.gni.
+group("sdk_inputs") {
+  if (current_toolchain != default_toolchain) {
+    public_deps = [ ":sdk_inputs($default_toolchain)" ]
+  }
+}
+

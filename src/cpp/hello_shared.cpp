@@ -7,3 +7,8 @@
 const char* GetSharedText() {
   return "world";
 }
+
+
+static void test(){
+  GetSharedText();
+}

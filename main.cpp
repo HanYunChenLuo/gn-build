@@ -4,12 +4,10 @@
 
 #include <iostream>
 
-#include <hello_shared.h>
 #include <hello_static.h>
+#include <hello_shared.h>
 
 int main(int argc, char* argv[]) {
-    //   printf("%s, %s\n", GetStaticText(), GetSharedText());
-    // std::cout << GetStaticText() << ", " << GetSharedText() << std::endl;
     std::cout << GetStaticText() << std::endl;
     std::cout << GetSharedText() << std::endl;
     return 0;

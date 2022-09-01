@@ -1,0 +1,204 @@
+# Copyright 2014 The Chromium Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# This file contains common system config stuff for the Android build.
+
+# NOTE: Because Chrome OS builds may depend on targets built with the Android
+# toolchain, this GNI file may be read and processed from within Chrome OS
+# toolchains. Checking |is_android| here would therefore be too restrictive.
+if (is_android) {
+
+  # We are using a separate declare_args block for only this argument so that
+  # we can decide if we have to pull in definitions from the internal config
+  # early.
+  declare_args() {
+
+    # The default to use for android:minSdkVersion for targets that do
+    # not explicitly set it.
+    default_min_sdk_version = 23
+
+    # Static analysis can be either "on" or "off" or "build_server". This
+    # controls how android lint, error-prone, bytecode checks are run. This
+    # needs to be in a separate declare_args as it determines some of the args
+    # in the main declare_args block below.
+    # "on" is the default.
+    # "off" avoids running any static analysis. This is the default for
+    #     official builds to reduce build times. Failures in static analysis
+    #     would have been caught by other bots.
+    # "build_server" ensures that fast_local_dev_server.py is running and
+    #     offloads analysis tasks to it to be run after the build completes.
+    #     This is the recommended setting for local development.
+    if (is_official_build) {
+      android_static_analysis = "off"
+    } else {
+      android_static_analysis = "on"
+    }
+  }
+
+  # Avoid typos when setting android_static_analysis in args.gn.
+  assert(android_static_analysis == "on" || android_static_analysis == "off" ||
+         android_static_analysis == "build_server")
+
+  declare_args() {
+    # Android API level for 32 bits platforms
+    android32_ndk_api_level = default_min_sdk_version
+
+    # Android API level for 64 bits platforms
+    if (default_min_sdk_version < 21) {
+      android64_ndk_api_level = 21
+    } else {
+      android64_ndk_api_level = default_min_sdk_version
+    }
+  }
+
+  if (!defined(default_android_ndk_root)) {
+    default_android_ndk_root = "//third_party/android_ndk"
+    default_android_ndk_version = "r23"
+    default_android_ndk_major_version = 23
+  } else {
+    assert(defined(default_android_ndk_version))
+    assert(defined(default_android_ndk_major_version))
+  }
+
+  default_android_sdk_root = "//third_party/android_sdk"
+  default_android_sdk_version = "33"
+  default_android_sdk_build_tools_version = "33.0.0"
+  default_android_sdk = true
+
+  # For use downstream when we are building with preview Android SDK
+  if (!defined(final_android_sdk)) {
+    final_android_sdk = default_android_sdk
+  }
+
+  if (!defined(default_lint_android_sdk_root)) {
+    # Purposefully repeated so that downstream can change
+    # default_android_sdk_root without changing lint version.
+    default_lint_android_sdk_root = default_android_sdk_root
+    default_lint_android_sdk_version = 33
+  }
+
+  if (!defined(default_extras_android_sdk_root)) {
+    # Purposefully repeated so that downstream can change
+    # default_android_sdk_root without changing where we load the SDK extras
+    # from. (Google Play services, etc.)
+    default_extras_android_sdk_root = default_android_sdk_root
+  }
+
+
+  declare_args() {
+    android_ndk_root = default_android_ndk_root
+    android_ndk_version = default_android_ndk_version
+    android_ndk_major_version = default_android_ndk_major_version
+
+    android_sdk_root = default_android_sdk_root
+    android_sdk_version = default_android_sdk_version
+    android_sdk_build_tools_version = default_android_sdk_build_tools_version
+
+    lint_android_sdk_root = default_lint_android_sdk_root
+    lint_android_sdk_version = default_lint_android_sdk_version
+
+    # Libc++ library directory. Override to use a custom libc++ binary.
+    android_libcpp_lib_dir = ""
+
+    # Android versionCode for android_apk()s that don't explicitly set one.
+    android_default_version_code = "1"
+
+    # Android versionName for android_apk()s that don't explicitly set one.
+    android_default_version_name = "Developer Build"
+
+
+
+    # Location of aapt2 used for app bundles. For now, a more recent version
+    # than the one distributed with the Android SDK is required.
+    android_sdk_tools_bundle_aapt2_dir =
+        "//third_party/android_build_tools/aapt2"
+
+    # Causes expectation failures to break the build, otherwise, just warns on
+    # stderr and writes a failure file to $android_configuration_failure_dir:
+    fail_on_android_expectations = false
+
+    # Controls whether proguard obfuscation is enabled for targets
+    # configured to use it.
+    enable_proguard_obfuscation = true
+
+    # Controls whether |short_resource_paths| and |strip_resource_names| are
+    # respected. Useful when trying to analyze APKs using tools that do not
+    # support mapping these names.
+    enable_arsc_obfuscation = true
+
+  }
+
+  # We need a second declare_args block to make sure we are using the overridden
+  # value of the arguments set above.
+  declare_args() {
+    if (defined(default_android_sdk_platform_version)) {
+      android_sdk_platform_version = default_android_sdk_platform_version
+    } else {
+      android_sdk_platform_version = android_sdk_version
+    }
+  }
+
+  # Host stuff -----------------------------------------------------------------
+
+  # Defines the name the Android build gives to the current host CPU
+  # architecture, which is different than the names GN uses.
+  if (host_cpu == "x64") {
+    android_host_arch = "x86_64"
+  } else if (host_cpu == "x86") {
+    android_host_arch = "x86"
+  } else {
+    assert(false, "Need Android toolchain support for your build CPU arch.")
+  }
+
+  # Defines the name the Android build gives to the current host CPU
+  # architecture, which is different than the names GN uses.
+  if (host_os == "linux") {
+    android_host_os = "linux"
+  } else if (host_os == "mac") {
+    android_host_os = "darwin"
+  } else {
+    assert(false, "Need Android toolchain support for your build OS.")
+  }
+
+  # Directories and files ------------------------------------------------------
+  #
+  # We define may of the dirs strings here for each output architecture (rather
+  # than just the current one) sandroid_sdk_build_toolsince these are needed by the Android toolchain
+  # file to define toolchains for all possible targets in one pass.
+
+  android_sdk =
+      "${android_sdk_root}/platforms/android-${android_sdk_platform_version}"
+  android_sdk_build_tools =
+      "${android_sdk_root}/build-tools/$android_sdk_build_tools_version"
+
+  # Path to the SDK's android.jar
+  android_sdk_jar = "$android_sdk/android.jar"
+
+  # Location of libgcc. This is only needed for the current GN toolchain, so we
+  # only need to define the current one, rather than one for every platform
+  # like the toolchain roots.
+  if (current_cpu == "x86") {
+    android_prebuilt_arch = "android-x86"
+  } else if (current_cpu == "arm") {
+    android_prebuilt_arch = "android-arm"
+  } else if (current_cpu == "mipsel") {
+    android_prebuilt_arch = "android-mips"
+  } else if (current_cpu == "x64") {
+    android_prebuilt_arch = "android-x86_64"
+  } else if (current_cpu == "arm64") {
+    android_prebuilt_arch = "android-arm64"
+  } else if (current_cpu == "mips64el") {
+    android_prebuilt_arch = "android-mips64"
+  } else {
+    assert(false, "Need android libgcc support for your target arch.")
+  }
+
+  android_toolchain_root = "$android_ndk_root/toolchains/llvm/prebuilt/${android_host_os}-${android_host_arch}"
+  android_ndk_library_path = "$android_toolchain_root/lib64"
+  android_tool_prefix = "$android_toolchain_root/bin/llvm-"
+  android_readelf = "${android_tool_prefix}readobj"
+  android_objcopy = "${android_tool_prefix}objcopy"
+  android_gdbserver =
+      "$android_ndk_root/prebuilt/$android_prebuilt_arch/gdbserver/gdbserver"
+}
