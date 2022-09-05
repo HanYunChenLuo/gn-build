@@ -14,7 +14,6 @@ declare_args() {
   # Currently works only on some platforms and enabled by default for official
   # builds. Requires debug info.
   enable_resource_allowlist_generation =
-      is_official_build &&
       # Don't enable for Android-on-Chrome OS.
       target_os == "android"
 
@@ -34,9 +33,6 @@ if (enable_resource_allowlist_generation) {
   assert(
       !strip_debug_info,
       "enable_resource_allowlist_generation=true requires strip_debug_info=false")
-  assert(
-      !is_component_build,
-      "enable_resource_allowlist_generation=true requires is_component_build=false")
   assert(
       target_os == "android" || target_os == "win",
       "enable_resource_allowlist_generation=true does not work for target_os=$target_os")

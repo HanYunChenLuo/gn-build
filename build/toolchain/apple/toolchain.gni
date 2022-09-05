@@ -16,19 +16,6 @@ import("//build/toolchain/toolchain.gni")
 
 assert((host_os == "mac") || host_os != "win")
 
-declare_args() {
-  # This controls whether whole module optimization is enabled when building
-  # Swift modules. If enabled, the compiler will compile the module as one
-  # unit, generating just one single object file. Otherwise, it will generate
-  # one object file per .swift file. If unspecified, will default to "true"
-  # for official builds, and "false" for all other builds.
-  swift_whole_module_optimization = -1
-}
-
-if (swift_whole_module_optimization == -1) {
-  swift_whole_module_optimization = is_official_build
-}
-
 # When implementing tools using Python scripts, a TOOL_VERSION=N env
 # variable is placed in front of the command. The N should be incremented
 # whenever the script is changed, so that the build system rebuilds all

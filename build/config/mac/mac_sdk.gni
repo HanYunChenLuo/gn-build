@@ -42,22 +42,6 @@ declare_args() {
   mac_allow_system_xcode_for_official_builds_for_testing = false
 }
 
-# Check that the version of macOS SDK used is the one requested when building
-# a version of Chrome shipped to the users. Disable the check if building for
-# iOS as the version macOS SDK used is not relevant for the tool build for the
-# host (they are not shipped) --- this is required as Chrome on iOS is usually
-# build with the latest version of Xcode that may not ship with the version of
-# the macOS SDK used to build Chrome on mac.
-# TODO(crbug.com/635745): the check for target_os should be replaced by a
-# check that current_toolchain is default_toolchain, and the file should
-# assert that current_os is "mac" once this file is no longer included by
-# iOS toolchains.
-if (is_official_build) {
-  assert(!use_system_xcode ||
-             mac_allow_system_xcode_for_official_builds_for_testing,
-         "official branded builds should use hermetic xcode")
-}
-
 # The path to the hermetic install of Xcode. Only relevant when
 # use_system_xcode = false.
 if (!use_system_xcode) {

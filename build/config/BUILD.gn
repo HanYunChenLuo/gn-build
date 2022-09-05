@@ -37,9 +37,6 @@ if (is_android) {
 # build flags.
 config("feature_flags") {
   defines = []
-  if (is_official_build) {
-    defines += [ "OFFICIAL_BUILD" ]
-  }
 
   # ==============================================
   #   PLEASE DO NOT ADD MORE THINGS TO THIS LIST

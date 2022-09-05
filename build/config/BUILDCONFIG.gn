@@ -129,11 +129,6 @@ declare_args() {
   # (debug, release, official) but for historical reasons there are two
   # separate flags.
   #
-  # IMPORTANT NOTE: (!is_debug) is *not* sufficient to get satisfying
-  # performance. In particular, DCHECK()s are still enabled for release builds,
-  # which can halve overall performance, and do increase memory usage. Always
-  # set "is_official_build" to true for any build intended to ship to end-users.
-  is_official_build = false
 
   # Set to true when compiling with the Clang compiler.
   is_clang = current_os != "linux" ||
@@ -155,7 +150,7 @@ declare_args() {
 
 declare_args() {
   # Debug build. Enabling official builds automatically sets is_debug to false.
-  is_debug = !is_official_build
+  is_debug = true
 }
 
 declare_args() {
@@ -165,12 +160,8 @@ declare_args() {
   #
   # For more information see
   # https://chromium.googlesource.com/chromium/src/+/main/docs/component_build.md
-  is_component_build = is_debug && current_os != "ios"
+  is_component_build = is_debug
 }
-
-assert(!(is_debug && is_official_build), "Can't do official debug builds")
-assert(!(current_os == "ios" && is_component_build),
-       "Can't use component build on iOS")
 
 # ==============================================================================
 # TOOLCHAIN SETUP

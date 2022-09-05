@@ -24,12 +24,7 @@ declare_args() {
 if (concurrent_links == -1) {
   if (use_thin_lto) {
     _args = [ "--reserve_mem_gb=10" ]
-    if (use_goma_thin_lto) {
-      _args += [ "--thin-lto=goma" ]
-    } else {
-      _args += [ "--thin-lto=local" ]
-    }
-
+    _args += [ "--thin-lto=local" ]
     _args += [ "--mem_per_link_gb=16" ]
   } else if (use_clang_coverage &&
               # When coverage_instrumentation_input_file is not empty it means
