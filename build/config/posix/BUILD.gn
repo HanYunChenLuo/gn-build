@@ -4,7 +4,7 @@
 
 import("//build/config/sysroot.gni")
 
-# This build configuration is used by both Fuchsia and POSIX systems.
+# This build configuration is used by POSIX systems.
 assert(is_posix)
 
 group("posix") {
@@ -25,7 +25,7 @@ config("runtime_library") {
   defines = []
   ldflags = []
 
-  if (!is_apple && sysroot != "" && current_os != "zos") {
+  if (!is_apple && sysroot != "") {
     # Pass the sysroot to all C compiler variants, the assembler, and linker.
     sysroot_flags = [ "--sysroot=" + rebase_path(sysroot, root_build_dir) ]
     if (is_linux) {

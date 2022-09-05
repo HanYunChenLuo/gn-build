@@ -32,11 +32,8 @@ declare_args() {
 config("symbol_visibility_hidden") {
   cflags = [ "-fvisibility=hidden" ]
 
-  # Visibility attribute is not supported on AIX.
-  if (current_os != "aix") {
-    cflags_cc = [ "-fvisibility-inlines-hidden" ]
-    cflags_objcc = cflags_cc
-  }
+  cflags_cc = [ "-fvisibility-inlines-hidden" ]
+  cflags_objcc = cflags_cc
 }
 
 # This config is usually set when :symbol_visibility_hidden is removed.
@@ -63,7 +60,7 @@ config("symbol_visibility_default") {
 #  }
 config("rpath_for_built_shared_libraries") {
   if (!is_android) {
-    # Note: Android, Aix don't support rpath. Chromecast has its own logic for
+    # Note: Android don't support rpath. Chromecast has its own logic for
     # setting the rpath in //build/config/chromecast.
     if (current_toolchain != default_toolchain || gcc_target_rpath == "") {
       ldflags = [

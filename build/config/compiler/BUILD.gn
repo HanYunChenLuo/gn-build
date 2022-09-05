@@ -36,7 +36,7 @@ if (!is_clang) {
 declare_args() {
   # Normally, Android builds are lightly optimized, even for debug builds, to
   # keep binary size down. Setting this flag to true disables such optimization
-  android_full_debug = false
+  android_full_debug = true
 
   # Compile in such a way as to make it possible for the profiler to unwind full
   # stack frames. Setting this flag has a large effect on the performance of the
@@ -248,7 +248,6 @@ config("compiler") {
     if (is_android && current_cpu == "x86") {
       cflags += [ "-fno-stack-protector" ]
     } else {
-      # Not available on aix.
       cflags += [ "-fstack-protector" ]
     }
   }
@@ -282,7 +281,7 @@ config("compiler") {
     ]
   }
 
-  # Non-Apple Posix and Fuchsia compiler flags setup.
+  # Non-Apple Posix compiler flags setup.
   # -----------------------------------
   if (is_posix && !is_apple) {
     if (enable_profiling) {
@@ -342,7 +341,7 @@ config("compiler") {
     }
   }
 
-  # Linux/Android/Fuchsia common flags setup.
+  # Linux/Android common flags setup.
   # ---------------------------------
   if (is_linux || is_android) {
     asmflags += [ "-fPIC" ]
@@ -475,7 +474,7 @@ config("compiler") {
     cflags_cc += [ "-std=c++17" ]
   }
 
-  if (is_clang && current_os != "zos") {
+  if (is_clang) {
     # C++17 removes trigraph support, but clang still warns that it ignores
     # them when seeing them.  Don't.
     cflags_cc += [ "-Wno-trigraphs" ]
@@ -950,23 +949,6 @@ config("compiler_cpu_abi") {
         ]
         ldflags += [ "-mips64r2" ]
       }
-    } else if (current_cpu == "ppc64") {
-      if (current_os == "aix") {
-        cflags += [ "-maix64" ]
-        ldflags += [ "-maix64" ]
-      } else {
-        cflags += [ "-m64" ]
-        ldflags += [ "-m64" ]
-      }
-    } else if (current_cpu == "riscv64") {
-      if (is_clang) {
-        cflags += [ "--target=riscv64-linux-gnu" ]
-        ldflags += [ "--target=riscv64-linux-gnu" ]
-      }
-      cflags += [ "-mabi=lp64d" ]
-    } else if (current_cpu == "s390x") {
-      cflags += [ "-m64" ]
-      ldflags += [ "-m64" ]
     }
   }
 
@@ -1106,7 +1088,7 @@ config("runtime_library") {
     configs += [ "//build/config/c++:runtime_library" ]
   }
 
-  # TODO(crbug.com/830987): Come up with a better name for is POSIX + Fuchsia
+  # TODO(crbug.com/830987): Come up with a better name for is POSIX
   # configuration.
   if (is_posix) {
     configs += [ "//build/config/posix:runtime_library" ]
@@ -1386,26 +1368,25 @@ if (is_android) {
 if (is_apple) {
   common_optimize_on_ldflags += [ "-Wl,-dead_strip" ]
 } else {
-  # # Non-Mac Posix flags.
-  # # Aix does not support these.
-  # common_optimize_on_cflags += [
-  #   # Put data and code in their own sections, so that unused symbols
-  #   # can be removed at link time with --gc-sections.
-  #   "-fdata-sections",
-  #   "-ffunction-sections",
-  # ]
-  # if (is_clang) {
-  #   # We don't care about unique section names, this makes object files a bit
-  #   # smaller.
-  #   common_optimize_on_cflags += [ "-fno-unique-section-names" ]
-  # }
-  # common_optimize_on_ldflags += [
-  #   # Specifically tell the linker to perform optimizations.
-  #   # See http://lwn.net/Articles/192624/ .
-  #   # -O2 enables string tail merge optimization in gold and lld.
-  #   "-Wl,-O2",
-  #   "-Wl,--gc-sections",
-  # ]
+  # Non-Mac Posix flags.
+  common_optimize_on_cflags += [
+    # Put data and code in their own sections, so that unused symbols
+    # can be removed at link time with --gc-sections.
+    "-fdata-sections",
+    "-ffunction-sections",
+  ]
+  if (is_clang) {
+    # We don't care about unique section names, this makes object files a bit
+    # smaller.
+    common_optimize_on_cflags += [ "-fno-unique-section-names" ]
+  }
+  common_optimize_on_ldflags += [
+    # Specifically tell the linker to perform optimizations.
+    # See http://lwn.net/Articles/192624/ .
+    # -O2 enables string tail merge optimization in gold and lld.
+    "-Wl,-O2",
+    "-Wl,--gc-sections",
+  ]
 }
 
 
@@ -1658,7 +1639,7 @@ config("symbols") {
   # sections" there.  Maybe just a bug in nacl_switch_32.S.
   _enable_gdb_index =
       symbol_level == 2 && !is_apple && current_cpu != "x86" &&
-      current_os != "zos" && (use_gold || use_lld) &&
+      (use_gold || use_lld) &&
       # Disable on non-fission 32-bit Android because it pushes
       # libcomponents_unittests over the 4gb size limit.
       !(is_android && !use_debug_fission && current_cpu != "x64" &&

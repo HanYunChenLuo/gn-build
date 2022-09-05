@@ -80,28 +80,6 @@ config("runtime_library") {
 # On Mac, this is used for everything except static libraries.
 config("mac_dynamic_flags") {
   ldflags = [ "-Wl,-ObjC" ]  # Always load Objective-C categories and classes.
-
-  if (is_component_build) {
-    ldflags += [
-      # Path for loading shared libraries for unbundled binaries.
-      "-Wl,-rpath,@loader_path/.",
-
-      # Path for loading shared libraries for bundled binaries. Get back from
-      # Binary.app/Contents/MacOS.
-      "-Wl,-rpath,@loader_path/../../..",
-    ]
-
-    # Path for loading shared libraries for unbundled binaries for
-    # the host toolchain (see https://crbug.com/1315433). Only used
-    # for when building for iOS.
-    if (target_os == "ios" && current_toolchain == host_toolchain) {
-      ldflags += [
-        "-Wl,-rpath,@loader_path/" +
-            rebase_path(get_label_info(":mac_dynamic_flags", "root_out_dir"),
-                        root_build_dir),
-      ]
-    }
-  }
 }
 
 # The ldflags referenced below are handled by

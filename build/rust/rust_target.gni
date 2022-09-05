@@ -362,11 +362,7 @@ template("rust_target") {
         deps = _autocxx_deps
         configs = _configs
 
-        if (is_component_build) {
-          # In a component_build the cxx bindings may be linked into a shared
-          # library at any point up the dependency tree, so always export.
-          export_symbols = true
-        } else if (invoker.target_type == "shared_library") {
+        if (invoker.target_type == "shared_library") {
           export_symbols = true
         } else {
           export_symbols = false

@@ -302,15 +302,9 @@ template("gcc_toolchain") {
     }
 
     tool("alink") {
-      if (current_os == "aix") {
-        # AIX does not support either -D (deterministic output) or response
-        # files.
-        command = "$ar -X64 {{arflags}} -r -c -s {{output}} {{inputs}}"
-      } else {
-        rspfile = "{{output}}.rsp"
-        rspfile_content = "{{inputs}}"
-        command = "\"$ar\" {{arflags}} -r -c -s -D {{output}} @\"$rspfile\""
-      }
+      rspfile = "{{output}}.rsp"
+      rspfile_content = "{{inputs}}"
+      command = "\"$ar\" {{arflags}} -r -c -s -D {{output}} @\"$rspfile\""
 
       # Remove the output file first so that ar doesn't try to modify the
       # existing file.
@@ -353,11 +347,8 @@ template("gcc_toolchain") {
       # .TOC file, overwrite it, otherwise, don't change it.
       tocfile = sofile + ".TOC"
 
-      soname_flag = ""
-      if (current_os != "aix") {
-        # -soname flag is not available on aix ld
-        soname_flag = "-Wl,-soname=\"$soname\""
-      }
+      soname_flag = "-Wl,-soname=\"$soname\""
+
       link_command = "$ld -shared $soname_flag {{ldflags}}${extra_ldflags} -o \"$unstripped_sofile\" @\"$rspfile\""
 
       # Generate a map file to be used for binary size analysis.
@@ -382,22 +373,8 @@ template("gcc_toolchain") {
       solink_wrapper =
           rebase_path("//build/toolchain/gcc_solink_wrapper.py", root_build_dir)
       solink_extra_flags = ""
-      if (current_os == "aix") {
-        # to be intercepted by solink_wrapper, so that we exit immediately
-        # after linking the shared object, without generating the TOC file
-        # (skipped on Aix)
-        solink_extra_flags = "--partitioned-library"
-      }
       command = "$python_path \"$solink_wrapper\" --readelf=\"$readelf\" --nm=\"$nm\" $strip_switch$dwp_switch --sofile=\"$unstripped_sofile\" --tocfile=\"$tocfile\"$map_switch --output=\"$sofile\" -- $link_command $solink_extra_flags"
-      if (target_cpu == "mipsel" && is_component_build && is_android) {
-        rspfile_content = "-Wl,--start-group -Wl,--whole-archive {{inputs}} {{solibs}} -Wl,--no-whole-archive {{libs}} -Wl,--end-group -Wl,--whole-archive {{rlibs}} -Wl,--no-whole-archive"
-      } else if (current_os == "aix") {
-        # --whole-archive, --no-whole-archive flags are not available on the aix
-        # ld.
-        rspfile_content = "{{inputs}} {{solibs}} {{libs}} {{rlibs}}"
-      } else {
-        rspfile_content = "-Wl,--whole-archive {{inputs}} {{solibs}} -Wl,--no-whole-archive {{libs}} -Wl,--whole-archive {{rlibs}} -Wl,--no-whole-archive"
-      }
+      rspfile_content = "-Wl,--whole-archive {{inputs}} {{solibs}} -Wl,--no-whole-archive {{libs}} -Wl,--whole-archive {{rlibs}} -Wl,--no-whole-archive"
 
       description = "SOLINK $sofile"
 
@@ -459,15 +436,9 @@ template("gcc_toolchain") {
         unstripped_sofile = sofile
       }
 
-      soname_flag = ""
-      whole_archive_flag = ""
-      no_whole_archive_flag = ""
-      if (current_os != "aix") {
-        # -soname, --whole-archive, --no-whole-archive flags are not available on aix ld
-        soname_flag = "-Wl,-soname=\"$soname\""
-        whole_archive_flag = "-Wl,--whole-archive"
-        no_whole_archive_flag = "-Wl,--no-whole-archive"
-      }
+      soname_flag = "-Wl,-soname=\"$soname\""
+      whole_archive_flag = "-Wl,--whole-archive"
+      no_whole_archive_flag = "-Wl,--no-whole"
       command = "$ld -shared {{ldflags}}${extra_ldflags} -o \"$unstripped_sofile\" $soname_flag @\"$rspfile\""
 
       if (defined(invoker.strip)) {
@@ -520,13 +491,8 @@ template("gcc_toolchain") {
         unstripped_outfile = "{{root_out_dir}}/exe.unstripped/$exename"
       }
 
-      start_group_flag = ""
-      end_group_flag = ""
-      if (current_os != "aix") {
-        # the "--start-group .. --end-group" feature isn't available on the aix ld.
-        start_group_flag = "-Wl,--start-group"
-        end_group_flag = "-Wl,--end-group "
-      }
+      start_group_flag = "-Wl,--start-group"
+      end_group_flag = "-Wl,--end-group "
       link_command = "$ld {{ldflags}}${extra_ldflags} -o \"$unstripped_outfile\" $start_group_flag @\"$rspfile\" {{solibs}} $end_group_flag {{libs}}"
 
       # Generate a map file to be used for binary size analysis.
@@ -549,13 +515,8 @@ template("gcc_toolchain") {
 
       description = "LINK $outfile"
 
-      whole_archive_flag = ""
-      no_whole_archive_flag = ""
-      if (current_os != "aix") {
-        # --whole-archive, --no-whole-archive flags are not available on aix ld
-        whole_archive_flag = "-Wl,--whole-archive"
-        no_whole_archive_flag = "-Wl,--no-whole-archive"
-      }
+      whole_archive_flag = "-Wl,--whole-archive"
+      no_whole_archive_flag = "-Wl,--no-whole-archive"
 
       # TODO(crbug.com/1296284): The {{rlibs}} contains the object files from
       # the build target's source files. They should be treated as peers of the
