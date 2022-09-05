@@ -341,22 +341,12 @@ default_shared_library_configs = default_compiler_configs + [
                                    "//build/config:shared_library_config",
                                  ] + _linker_configs
 
-if (is_android) {
-  # Strip native JNI exports from shared libraries by default. Binaries that
-  # want this can remove this config.
-  default_shared_library_configs +=
-      [ "//build/config/android:hide_all_but_jni_onload" ]
-}
+
 set_defaults("shared_library") {
   configs = default_shared_library_configs
 }
 set_defaults("loadable_module") {
   configs = default_shared_library_configs
-
-  # loadable_modules are generally used by other libs, not just via JNI.
-  if (is_android) {
-    configs -= [ "//build/config/android:hide_all_but_jni_onload" ]
-  }
 }
 
 # A helper for forwarding testonly and visibility.
