@@ -34,7 +34,7 @@ if (enable_resource_allowlist_generation) {
       !strip_debug_info,
       "enable_resource_allowlist_generation=true requires strip_debug_info=false")
   assert(
-      target_os == "android" || target_os == "win",
+      target_os == "android",
       "enable_resource_allowlist_generation=true does not work for target_os=$target_os")
 }
 
@@ -308,13 +308,8 @@ template("gcc_toolchain") {
 
       # Remove the output file first so that ar doesn't try to modify the
       # existing file.
-      if (host_os == "win") {
-        tool_wrapper_path =
-            rebase_path("//build/toolchain/win/tool_wrapper.py", root_build_dir)
-        command = "cmd /c $python_path $tool_wrapper_path delete-file {{output}} && $command"
-      } else {
-        command = "rm -f {{output}} && $command"
-      }
+      command = "rm -f {{output}} && $command"
+
 
       # Almost all targets build with //build/config/compiler:thin_archive which
       # adds -T to arflags.

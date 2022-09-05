@@ -16,10 +16,14 @@ assert(is_android)
 # is applied to all targets. It is here to separate out the logic that is
 # Android-only.
 config("compiler") {
-  cflags = [
-    "-ffunction-sections",
-    "-fno-short-enums",
-  ]
+  cflags = []
+  if(!is_debug){
+      cflags += [
+      "-ffunction-sections",
+      "-fno-short-enums",
+    ]
+  }
+
   defines = [
     "ANDROID",
 

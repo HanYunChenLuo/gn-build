@@ -14,7 +14,7 @@ import("//build/config/rust.gni")
 import("//build/toolchain/cc_wrapper.gni")
 import("//build/toolchain/toolchain.gni")
 
-assert((host_os == "mac") || host_os != "win")
+assert(host_os == "mac", "host_os must be macOS")
 
 # When implementing tools using Python scripts, a TOOL_VERSION=N env
 # variable is placed in front of the command. The N should be incremented

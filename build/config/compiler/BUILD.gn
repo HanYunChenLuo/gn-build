@@ -1369,24 +1369,27 @@ if (is_apple) {
   common_optimize_on_ldflags += [ "-Wl,-dead_strip" ]
 } else {
   # Non-Mac Posix flags.
-  common_optimize_on_cflags += [
-    # Put data and code in their own sections, so that unused symbols
-    # can be removed at link time with --gc-sections.
-    "-fdata-sections",
-    "-ffunction-sections",
-  ]
-  if (is_clang) {
-    # We don't care about unique section names, this makes object files a bit
-    # smaller.
-    common_optimize_on_cflags += [ "-fno-unique-section-names" ]
+  if(!is_debug){
+    common_optimize_on_cflags += [
+      # Put data and code in their own sections, so that unused symbols
+      # can be removed at link time with --gc-sections.
+      "-fdata-sections",
+      "-ffunction-sections",
+    ]
+    if (is_clang) {
+      # We don't care about unique section names, this makes object files a bit
+      # smaller.
+      common_optimize_on_cflags += [ "-fno-unique-section-names" ]
+    }
+    common_optimize_on_ldflags += [
+      # Specifically tell the linker to perform optimizations.
+      # See http://lwn.net/Articles/192624/ .
+      # -O2 enables string tail merge optimization in gold and lld.
+      "-Wl,-O2",
+      "-Wl,--gc-sections",
+    ]
   }
-  common_optimize_on_ldflags += [
-    # Specifically tell the linker to perform optimizations.
-    # See http://lwn.net/Articles/192624/ .
-    # -O2 enables string tail merge optimization in gold and lld.
-    "-Wl,-O2",
-    "-Wl,--gc-sections",
-  ]
+
 }
 
 
