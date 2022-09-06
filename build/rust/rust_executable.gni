@@ -63,6 +63,7 @@ template("rust_executable") {
     target_type = "executable"
     assert(!defined(cxx_bindings))
   }
+  output_dir = "rust_executable"
 }
 
 set_defaults("rust_executable") {

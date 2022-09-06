@@ -1,0 +1,6 @@
+rust_library("hello_rust") {
+  sources = [
+    "lib.rs",
+  ]
+  output_dir = "$target_out_dir"
+}

@@ -6,8 +6,6 @@ shared_library("hello_shared") {
     "hello_shared.cpp",
     "hello_shared.h",
   ]
-
-  defines = [ "HELLO_SHARED_IMPLEMENTATION" ]
 }
 
 static_library("hello_static") {

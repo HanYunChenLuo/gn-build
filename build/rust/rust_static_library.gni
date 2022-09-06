@@ -151,6 +151,7 @@ template("rust_static_library") {
       library_configs = invoker.configs
     }
     target_type = "rust_library"
+    output_dir = "rust_static_library"
   }
 }
 

@@ -18,6 +18,7 @@ template("rust_shared_library") {
     }
     target_type = "shared_library"
     crate_type = "cdylib"
+    output_dir = "rust_shared_library"
   }
 }
 
