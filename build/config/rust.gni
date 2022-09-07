@@ -85,7 +85,7 @@ if (enable_rust) {
 android_toolchain_supports_platform =
     (is_android && (current_cpu == "arm" || current_cpu == "arm64" ||
                     current_cpu == "x64" || current_cpu == "x86")) ||
-    (is_linux && current_cpu == "x64")
+    (is_linux && current_cpu == "x64") || (is_mac)
 
 toolchain_has_rust = enable_rust && (android_toolchain_supports_platform ||
                                      rust_sysroot_absolute != "")
@@ -103,7 +103,7 @@ if (enable_rust) {
     rust_sysroot = get_path_info(rust_sysroot_absolute, "abspath")
     use_unverified_rust_toolchain = true
   } else if (use_chromium_rust_toolchain) {
-    if (host_os != "linux") {
+    if (host_os != "linux" && host_os != "mac") {
       assert(
           false,
           "Attempt to use Chromium Rust toolchain on an unsupported platform")
@@ -112,7 +112,7 @@ if (enable_rust) {
     rust_sysroot = "//third_party/rust-toolchain"
     use_unverified_rust_toolchain = false
   } else {
-    if (host_os != "linux") {
+    if (host_os != "linux" && host_os != "mac") {
       assert(false,
              "Attempt to use Android Rust toolchain on an unsupported platform")
     }
