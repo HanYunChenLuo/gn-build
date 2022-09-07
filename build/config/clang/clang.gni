@@ -6,9 +6,9 @@ import("//build/toolchain/toolchain.gni")
 
 default_clang_base_path = "//tools/llvm"
 declare_args() {
-  if (current_os == "mac") {
-    clang_base_path = "/opt/homebrew/Cellar/llvm/14.0.6_1"
-  } else if(target_os == "android") {
+  if (host_os == "mac") {
+    clang_base_path = "//third_party/android_ndk/toolchains/llvm/prebuilt/darwin-x86_64"
+  } else if(host_os == "linux") {
     clang_base_path = "//third_party/android_ndk/toolchains/llvm/prebuilt/linux-x86_64"
   } else {
     clang_base_path = default_clang_base_path
