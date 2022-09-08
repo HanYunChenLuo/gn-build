@@ -3,14 +3,16 @@
 # found in the LICENSE file.
 
 import("//build/toolchain/toolchain.gni")
+if(target_os == "android") {
+    import("//build/config/android/config.gni")
+}
 
 default_clang_base_path = "//tools/llvm"
 declare_args() {
-  if (host_os == "mac") {
-    clang_base_path = "//third_party/android_ndk/toolchains/llvm/prebuilt/darwin-x86_64"
-  } else if(host_os == "linux") {
-    clang_base_path = "//third_party/android_ndk/toolchains/llvm/prebuilt/linux-x86_64"
+  if(target_os == "android") {
+    clang_base_path = android_ndk_root+"/toolchains/llvm/prebuilt/darwin-x86_64"
   } else {
-    clang_base_path = default_clang_base_path
+    clang_base_path = exec_script("//build/config/clang/find_clang_path.py",
+                                  [""], "trim string")
   }
 }

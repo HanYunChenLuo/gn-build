@@ -3,11 +3,14 @@
 // found in the LICENSE file.
 
 #include <iostream>
+#ifdef ANDROID
 #include <jni.h>
+#endif
 
 #include <hello_static.h>
 #include <hello_shared.h>
 
+#ifdef ANDROID
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_example_test_MainActivity_stringFromJNI(
         JNIEnv* env,
@@ -15,7 +18,7 @@ Java_com_example_test_MainActivity_stringFromJNI(
     std::string hello = "Hello from C++";
     return env->NewStringUTF(hello.c_str());
 }
-
+#endif
 int main(int argc, char* argv[]) {
     std::cout << GetStaticText() << std::endl;
     std::cout << GetSharedText() << std::endl;

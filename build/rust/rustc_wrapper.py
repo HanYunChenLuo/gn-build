@@ -12,9 +12,9 @@ import sys
 import re
 
 # # Set up path to be able to import build_utils
-# sys.path.append(
-#     os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir,
-#                  os.pardir, 'build', 'android', 'gyp'))
+sys.path.append(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir,
+                 os.pardir, 'build'))
 
 from util import build_utils
 
