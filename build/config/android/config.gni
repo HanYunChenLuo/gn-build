@@ -49,15 +49,21 @@ if (is_android) {
   }
 
   if (!defined(default_android_ndk_root)) {
-    default_android_ndk_root = "//third_party/android_ndk"
-    default_android_ndk_version = "r23"
-    default_android_ndk_major_version = 23
+    default_android_ndk_version = "r25"
+    ndk_args = ["--ndk-version", "25.0.8775105"]
+    default_android_ndk_root = exec_script("//build/config/android/get_android_ndk.py",
+                                        ndk_args, "trim string")
+    # default_android_ndk_root = "//third_party/android_ndk"
+    default_android_ndk_major_version = 25
   } else {
     assert(defined(default_android_ndk_version))
     assert(defined(default_android_ndk_major_version))
   }
 
-  default_android_sdk_root = "//third_party/android_sdk"
+  # default_android_sdk_root = "//third_party/android_sdk"
+  sdk_args = []
+  default_android_sdk_root = exec_script("//build/config/android/get_android_sdk.py",
+                                        sdk_args, "trim string")
   default_android_sdk_version = "33"
   default_android_sdk_build_tools_version = "33.0.0"
   default_android_sdk = true

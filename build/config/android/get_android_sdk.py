@@ -1,5 +1,5 @@
-import subprocess
 import sys
+import subprocess
 
 def exe_command(command):
     """
@@ -16,9 +16,15 @@ def exe_command(command):
     return result
 
 def main():
-    str= exe_command("which rustc")
-    str1 = str.replace('/bin/rustc', '')
-    print(str1)
+    str = exe_command("echo $HOME")
+    if sys.platform == 'darwin':
+        str += '/Library/Android/sdk'
+    elif sys.platform == 'linux':
+        str += '/Android/Sdk'
+    else:
+         raise Exception("This script only runs on Mac and Linux")
+    print (str)
+    return 0
 
 if __name__ == '__main__':
   sys.exit(main())
