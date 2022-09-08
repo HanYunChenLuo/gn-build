@@ -2,6 +2,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+action("egui-demo") {
+  script = "//app/egui-demo/compile.py"
+  args = []
+  outputs = [
+    "$target_gen_dir/egui-demo.txt"
+  ]
+}
+
 executable("hello") {
   sources = [ "main.cpp" ]
 
@@ -13,6 +21,7 @@ executable("hello") {
     # "//src:c++_libraries",
     "//src/cpp:hello_shared",
     "//src/cpp:hello_static",
-    "//src/rust:hello_rust"
+    "//src/rust:hello_rust",
   ]
 }
+
