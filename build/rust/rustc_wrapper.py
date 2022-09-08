@@ -11,10 +11,11 @@ import os
 import sys
 import re
 
-# Set up path to be able to import build_utils
-sys.path.append(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir,
-                 os.pardir, 'build', 'android', 'gyp'))
+# # Set up path to be able to import build_utils
+# sys.path.append(
+#     os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir,
+#                  os.pardir, 'build', 'android', 'gyp'))
+
 from util import build_utils
 
 # This script wraps rustc for (currently) three reasons:

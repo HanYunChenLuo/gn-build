@@ -24,7 +24,7 @@ import time
 import zipfile
 
 sys.path.append(os.path.join(os.path.dirname(__file__),
-                             os.pardir, os.pardir, os.pardir))
+                             os.pardir, os.pardir))
 import gn_helpers
 
 # Use relative paths to improved hermetic property of build scripts.
