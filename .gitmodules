@@ -1,0 +1,3 @@
+[submodule "app/egui-demo"]
+	path = app/egui-demo
+	url = https://gitlab.chehejia.com/ligraphic/render/egui-demo.git
