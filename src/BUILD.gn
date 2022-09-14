@@ -5,8 +5,6 @@ group("c++_libraries") {
   deps= [
     "cpp:hello_shared",
     "cpp:hello_static",
-    "rust:hello_rust",
-    ":egui-demo"
-        ]
+  ]
 }
 

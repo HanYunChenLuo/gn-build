@@ -3,8 +3,11 @@
 # found in the LICENSE file.
 
 action("egui-demo") {
-  script = "//app/egui-demo/compile.py"
-  args = []
+  script = "//build/android/compile.py"
+  args = [
+    "--path",
+    "//app/egui-demo"
+  ]
   outputs = [
     "$target_gen_dir/egui-demo.txt"
   ]
@@ -18,9 +21,9 @@ executable("hello") {
   ]
 
   deps = [
-    # "//src:c++_libraries",
-    "//src/cpp:hello_shared",
-    "//src/cpp:hello_static",
+    "//src:c++_libraries",
+    # "//src/cpp:hello_shared",
+    # "//src/cpp:hello_static",
     "//src/rust:hello_rust",
   ]
 }
