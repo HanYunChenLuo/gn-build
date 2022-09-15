@@ -15,17 +15,6 @@ declare_args() {
   # is false.
   enable_rust = true
 
-  # Use experimental Rust toolchain built in-tree. See //tools/rust. For now,
-  # only use it for linux targets. The package only has prebuilt libs for linux.
-  # More targets will be added later.
-  #
-  # Ideally this should check `current_os` so that e.g. Android builds will use
-  # the Android toolchain for target artifacts and the Chromium Rust toolchain
-  # for host artifacts. Currently there is an std mixup in //build/rust/std that
-  # prevents this.
-  #
-  # TODO(https://crbug.com/1245714): fix std handling and check `current_os`.
-  use_chromium_rust_toolchain = target_os == "linux" && host_os == "linux"
 
   # The version string returned by rustc -V, if using an alternative toolchain.
   rustc_version = ""
@@ -70,12 +59,7 @@ declare_args() {
 # Set rustc_version to the in-tree toolchain version, if enabled, or otherwise
 # the Android toolchain version. If using a custom toolchain it is not changed.
 if (enable_rust) {
-  if (use_chromium_rust_toolchain) {
-    assert(rustc_version == "",
-           "Cannot override rustc_version when using in-tree rust build")
-    rustc_version =
-        read_file("//third_party/rust-toolchain/VERSION", "trim string")
-  } else if (rustc_version == "") {
+  if (rustc_version == "") {
     # Android toolchain version.
     rustc_version = "rustc 1.62.0-dev"
   }
@@ -102,15 +86,6 @@ if (enable_rust) {
   if (rust_sysroot_absolute != "") {
     rust_sysroot = get_path_info(rust_sysroot_absolute, "abspath")
     use_unverified_rust_toolchain = true
-  } else if (use_chromium_rust_toolchain) {
-    if (host_os != "linux" && host_os != "mac") {
-      assert(
-          false,
-          "Attempt to use Chromium Rust toolchain on an unsupported platform")
-    }
-
-    rust_sysroot = "//third_party/rust-toolchain"
-    use_unverified_rust_toolchain = false
   } else {
     if (host_os != "linux" && host_os != "mac") {
       assert(false,
