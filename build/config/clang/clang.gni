@@ -11,8 +11,10 @@ default_clang_base_path = "//tools/llvm"
 declare_args() {
   if(target_os == "android") {
     clang_base_path = android_ndk_root+"/toolchains/llvm/prebuilt/darwin-x86_64"
-  } else {
+  } else if(host_os == "mac") {
     clang_base_path = exec_script("//build/config/clang/find_clang_path.py",
                                   [""], "trim string")
+  } else {
+    clang_base_path = "//tools/llvm"
   }
 }
