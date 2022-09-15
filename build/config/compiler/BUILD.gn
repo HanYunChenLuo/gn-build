@@ -1669,10 +1669,10 @@ config("symbols") {
     } else {
       # Use constructor homing for debug info. This option reduces debug info
       # by emitting class type info only when constructors are emitted.
-      cflags += [
-        "-Xclang",
-        "-fuse-ctor-homing",
-      ]
+      # cflags += [
+      #   "-Xclang",
+      #   "-fuse-ctor-homing",
+      # ]
     }
   }
   rustflags = [ "-g" ]
