@@ -2,16 +2,16 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-action("egui-demo") {
-  script = "//build/android/compile.py"
-  args = [
-    "--path",
-    "//app/egui-demo"
-  ]
-  outputs = [
-    "$target_gen_dir/egui-demo.txt"
-  ]
-}
+# action("egui-demo") {
+#   script = "//build/android/compile.py"
+#   args = [
+#     "--path",
+#     "//app/egui-demo"
+#   ]
+#   outputs = [
+#     "$target_gen_dir/egui-demo.txt"
+#   ]
+# }
 
 executable("hello") {
   sources = [ "main.cpp" ]
