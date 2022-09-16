@@ -1,29 +1,58 @@
+from distutils.command.build import build
+import os
 import sys
-import subprocess
+from optparse import OptionParser
 
-def exe_command(command):
-    """
-    执行 shell 命令并实时打印输出
-    :param command: shell 命令
-    :return: process, exitcode
-    """
-    result = ""
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
-    with process.stdout:
-        for line in iter(process.stdout.readline, b''):
-            result += line.decode().strip()
-    exitcode = process.wait()
-    return result
+sys.path.insert(1, os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+import gn_helpers
 
-def main():
-    str = exe_command("echo $HOME")
+def getSDKRoot(sdk_version):
+    if(sdk_version == ''):
+        return ''
+
+    sdk_root = os.environ['HOME']
     if sys.platform == 'darwin':
-        str += '/Library/Android/sdk'
+        sdk_root += '/Library/Android/sdk/platforms/android-' + sdk_version
     elif sys.platform == 'linux':
-        str += '/Android/Sdk'
+        sdk_root += '/Android/Sdk/platforms/android-' + sdk_version
     else:
          raise Exception("This script only runs on Mac and Linux")
-    print (str)
+    if(os.access(sdk_root, mode=os.F_OK)):
+        return sdk_root
+    else:
+        return ''
+
+def getBuildToolsRoot(build_tools):
+    if(build_tools == ''):
+        return ''
+
+    sdk_root = os.environ['HOME']
+    if sys.platform == 'darwin':
+        sdk_root += '/Library/Android/sdk'
+    elif sys.platform == 'linux':
+        sdk_root += '/Android/Sdk'
+    else:
+         raise Exception("This script only runs on Mac and Linux")
+    return sdk_root
+
+def main():
+    parser = OptionParser()
+    parser.add_option("--sdk-version",
+                      action="store", dest="sdk_version", default='',
+                      help="Additionally print the ndk-version (appears first).")
+    parser.add_option("--build-tools-version",
+                      action="store", dest="build_tools_version", default='',
+                      help="Additionally print the build-tools-version (appears first).")
+    options, args = parser.parse_args()
+    sdk_version = options.sdk_version
+    build_tools_version = options.build_tools_version
+
+    sdk_root = getSDKRoot(sdk_version)
+    build_tools_root = getSDKRoot(build_tools_version)
+    sys.stdout.write(
+        gn_helpers.ToGNString({
+            'sdk_root': sdk_root,
+        }))
     return 0
 
 if __name__ == '__main__':
