@@ -24,7 +24,7 @@ def main():
         if(platform.processor() == 'arm'):
             str += '/opt/homebrew/Cellar/llvm/'
         else:
-            str += '/usr/local/Cellar/llvm'
+            str += '/usr/local/Cellar/llvm/'
         list_result = os.listdir(str)
         str += list_result[0]
     elif sys.platform == 'linux':
